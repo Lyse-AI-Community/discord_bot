@@ -1,0 +1,24 @@
+# Dépendances
+node_modules/
+
+# Variables d'environnement (contient des secrets)
+.env
+
+# Base de données SQLite (état local, ne doit pas être versionné)
+src/db/*.db
+src/db/*.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs
+npm-debug.log*
+logs/
+*.log
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+.idea/

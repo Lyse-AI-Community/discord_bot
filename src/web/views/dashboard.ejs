@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Types de demandes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">🎫 Dashboard — Gestion des demandes</span>
+            <form method="POST" action="/logout" class="d-flex">
+                <button type="submit" class="btn btn-outline-light btn-sm">Déconnexion</button>
+            </form>
+        </div>
+    </nav>
+
+    <div class="container mb-5">
+
+        <% if (succes) { %>
+            <div class="alert alert-success" role="alert"><%= succes %></div>
+        <% } %>
+
+        <% if (erreurs && erreurs.length > 0) { %>
+            <div class="alert alert-danger" role="alert">
+                <ul class="mb-0">
+                    <% erreurs.forEach(function(e) { %>
+                        <li><%= e %></li>
+                    <% }); %>
+                </ul>
+            </div>
+        <% } %>
+
+        <!-- ================= Formulaire d'ajout d'un type de demande ================= -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header fw-bold">➕ Ajouter un type de demande</div>
+            <div class="card-body">
+                <form method="POST" action="/types" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Nom du type</label>
+                        <input type="text" name="name" class="form-control" placeholder="Ex : Visuel" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">ID Salon cible</label>
+                        <input type="text" name="target_channel_id" class="form-control" placeholder="123456789012345678" required pattern="\d{15,25}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">ID Salon de logs</label>
+                        <input type="text" name="log_channel_id" class="form-control" placeholder="123456789012345678" required pattern="\d{15,25}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">ID Rôle à pinger</label>
+                        <input type="text" name="role_id" class="form-control" placeholder="123456789012345678" required pattern="\d{15,25}">
+                    </div>
+                    <div class="col-md-11">
+                        <label class="form-label">
+                            IDs des rôles autorisés à gérer ce type <span class="text-muted">(optionnel, séparés par des virgules)</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="manager_role_ids"
+                            class="form-control"
+                            placeholder="111111111111111111, 222222222222222222"
+                        >
+                        <div class="form-text">
+                            En plus du rôle pingé ci-dessus, un membre possédant <strong>l'un de ces rôles</strong>
+                            (même parmi plusieurs) pourra prendre en charge, terminer, rejeter ou supprimer les
+                            tickets de ce type.
+                        </div>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Ajouter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= Liste des types de demande configurés ================= -->
+        <div class="card shadow-sm">
+            <div class="card-header fw-bold">📋 Types de demande configurés</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Salon cible</th>
+                                <th>Salon de logs</th>
+                                <th>Rôle pingé</th>
+                                <th>Rôles gestionnaires</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (types.length === 0) { %>
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        Aucun type de demande configuré pour le moment.
+                                    </td>
+                                </tr>
+                            <% } %>
+
+                            <% types.forEach(function(type) {
+                                const rolesGestionnaires = (type.manager_role_ids || '')
+                                    .split(',')
+                                    .map((r) => r.trim())
+                                    .filter(Boolean);
+                            %>
+                                <tr>
+                                    <td><strong><%= type.name %></strong></td>
+                                    <td><code>#<%= type.target_channel_id %></code></td>
+                                    <td><code>#<%= type.log_channel_id %></code></td>
+                                    <td><code>@<%= type.role_id %></code></td>
+                                    <td>
+                                        <% if (rolesGestionnaires.length === 0) { %>
+                                            <span class="text-muted">—</span>
+                                        <% } else { %>
+                                            <% rolesGestionnaires.forEach(function(roleId) { %>
+                                                <code class="d-inline-block mb-1">@<%= roleId %></code>
+                                            <% }); %>
+                                        <% } %>
+                                    </td>
+                                    <td class="text-end">
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editModal-<%= type.id %>"
+                                        >
+                                            ✏️ Modifier
+                                        </button>
+
+                                        <form
+                                            method="POST"
+                                            action="/types/<%= type.id %>/delete"
+                                            class="d-inline"
+                                            onsubmit="return confirm('Supprimer définitivement le type « <%= type.name %> » ?');"
+                                        >
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ Supprimer</button>
+                                        </form>
+                                    </td>
+                                </tr>
+
+                                <!-- Modal d'édition du type de demande -->
+                                <div class="modal fade" id="editModal-<%= type.id %>" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <form method="POST" action="/types/<%= type.id %>/update">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Modifier « <%= type.name %> »</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Nom du type</label>
+                                                        <input type="text" name="name" class="form-control" value="<%= type.name %>" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">ID Salon cible</label>
+                                                        <input type="text" name="target_channel_id" class="form-control" value="<%= type.target_channel_id %>" required pattern="\d{15,25}">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">ID Salon de logs</label>
+                                                        <input type="text" name="log_channel_id" class="form-control" value="<%= type.log_channel_id %>" required pattern="\d{15,25}">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">ID Rôle à pinger</label>
+                                                        <input type="text" name="role_id" class="form-control" value="<%= type.role_id %>" required pattern="\d{15,25}">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">
+                                                            IDs des rôles autorisés à gérer ce type <span class="text-muted">(optionnel, séparés par des virgules)</span>
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            name="manager_role_ids"
+                                                            class="form-control"
+                                                            value="<%= type.manager_role_ids || '' %>"
+                                                            placeholder="111111111111111111, 222222222222222222"
+                                                        >
+                                                        <div class="form-text">
+                                                            Un membre possédant l'un de ces rôles (en plus du rôle pingé)
+                                                            pourra gérer les tickets de ce type.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-muted small mt-3">
+            💡 Les identifiants Discord (salons, rôles) s'obtiennent en activant le
+            <strong>Mode développeur</strong> dans Discord (Paramètres &gt; Avancés), puis en faisant
+            un clic droit sur le salon ou le rôle &gt; « Copier l'identifiant ».
+        </p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
